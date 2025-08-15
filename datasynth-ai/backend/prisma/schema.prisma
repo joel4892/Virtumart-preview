@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ANNOTATOR
+  VIEWER
+}
+
+enum DatasetType {
+  TEXT
+  IMAGE
+}
+
+enum AnnotationType {
+  ENTITY
+  CLASSIFICATION
+  SENTIMENT
+  BBOX
+  POLYGON
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  projects  Project[]
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  role           Role
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  datasets       Dataset[]
+  annotations    Annotation[]
+}
+
+model Project {
+  id             String   @id @default(cuid())
+  name           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  datasets       Dataset[]
+}
+
+model Dataset {
+  id             String   @id @default(cuid())
+  name           String
+  type           DatasetType
+  fileKey        String
+  storageProvider String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  owner          User     @relation(fields: [ownerId], references: [id])
+  ownerId        String
+  project        Project  @relation(fields: [projectId], references: [id])
+  projectId      String
+  annotations    Annotation[]
+  reports        ComplianceReport[]
+  status         String   @default("ingestion")
+}
+
+model Annotation {
+  id          String   @id @default(cuid())
+  type        AnnotationType
+  label       String
+  payload     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  dataset     Dataset  @relation(fields: [datasetId], references: [id])
+  datasetId   String
+  author      User     @relation(fields: [authorId], references: [id])
+  authorId    String
+}
+
+model ComplianceReport {
+  id          String   @id @default(cuid())
+  summary     String
+  findings    Json
+  createdAt   DateTime @default(now())
+  dataset     Dataset  @relation(fields: [datasetId], references: [id])
+  datasetId   String
+  certificatePath String?
+}
