@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datasynth-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: datasynth-frontend
+  template:
+    metadata:
+      labels:
+        app: datasynth-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: your-registry/datasynth-frontend:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: http://datasynth-backend
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: datasynth-frontend
+spec:
+  selector:
+    app: datasynth-frontend
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP

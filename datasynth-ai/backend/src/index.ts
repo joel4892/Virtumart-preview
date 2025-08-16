@@ -1,0 +1,83 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import path from 'path';
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+import client from 'prom-client';
+import { prisma } from './config/prisma';
+import { authRouter } from './routes/auth';
+import { datasetsRouter } from './routes/datasets';
+import { annotationsRouter } from './routes/annotations';
+import { complianceRouter } from './routes/compliance';
+import { exportRouter } from './routes/export';
+import { projectsRouter } from './routes/projects';
+import { adminRouter } from './routes/admin';
+import { errorHandler } from './middleware/error';
+
+const app = express();
+const server = http.createServer(app);
+const io = new SocketIOServer(server, { cors: { origin: '*' } });
+
+app.set('io', io);
+
+app.use(cors());
+app.use(helmet());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
+
+// Metrics
+const collectDefaultMetrics = client.collectDefaultMetrics;
+collectDefaultMetrics();
+app.get('/metrics', async (_req, res) => {
+	res.set('Content-Type', client.register.contentType);
+	res.end(await client.register.metrics());
+});
+
+// Static serving for local storage downloads
+app.use('/static', express.static(path.join(process.cwd(), 'storage')));
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.use('/auth', authRouter);
+app.use('/projects', projectsRouter);
+app.use('/datasets', datasetsRouter);
+app.use('/annotations', annotationsRouter);
+app.use('/compliance', complianceRouter);
+app.use('/export', exportRouter);
+app.use('/admin', adminRouter);
+
+app.use(errorHandler);
+
+const port = process.env.PORT ? Number(process.env.PORT) : 4000;
+
+async function start() {
+  try {
+    await prisma.$connect();
+    server.listen(port, () => {
+      // eslint-disable-next-line no-console
+      console.log(`Backend running on http://localhost:${port}`);
+    });
+    io.on('connection', (socket) => {
+      // eslint-disable-next-line no-console
+      console.log('Realtime client connected');
+      socket.on('join', (room: { datasetId?: string }) => {
+        if (room?.datasetId) socket.join(`dataset:${room.datasetId}`);
+      });
+      socket.on('leave', (room: { datasetId?: string }) => {
+        if (room?.datasetId) socket.leave(`dataset:${room.datasetId}`);
+      });
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to start server', err);
+    process.exit(1);
+  }
+}
+
+void start();
