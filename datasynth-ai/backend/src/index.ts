@@ -4,6 +4,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+import client from 'prom-client';
 import { prisma } from './config/prisma';
 import { authRouter } from './routes/auth';
 import { datasetsRouter } from './routes/datasets';
@@ -15,12 +18,24 @@ import { adminRouter } from './routes/admin';
 import { errorHandler } from './middleware/error';
 
 const app = express();
+const server = http.createServer(app);
+const io = new SocketIOServer(server, { cors: { origin: '*' } });
+
+app.set('io', io);
 
 app.use(cors());
 app.use(helmet());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
+
+// Metrics
+const collectDefaultMetrics = client.collectDefaultMetrics;
+collectDefaultMetrics();
+app.get('/metrics', async (_req, res) => {
+	res.set('Content-Type', client.register.contentType);
+	res.end(await client.register.metrics());
+});
 
 // Static serving for local storage downloads
 app.use('/static', express.static(path.join(process.cwd(), 'storage')));
@@ -44,9 +59,13 @@ const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 async function start() {
   try {
     await prisma.$connect();
-    app.listen(port, () => {
+    server.listen(port, () => {
       // eslint-disable-next-line no-console
       console.log(`Backend running on http://localhost:${port}`);
+    });
+    io.on('connection', () => {
+      // eslint-disable-next-line no-console
+      console.log('Realtime client connected');
     });
   } catch (err) {
     // eslint-disable-next-line no-console

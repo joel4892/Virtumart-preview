@@ -28,6 +28,7 @@ datasetsRouter.post('/', requireRole(['ADMIN', 'ANNOTATOR']), upload.single('fil
 				status: 'ingestion'
 			}
 		});
+		try { await prisma.auditLog.create({ data: { userId: user.userId, action: 'create', entity: 'Dataset', entityId: dataset.id, after: dataset as any } }); } catch {}
 		res.json({ dataset });
 	} catch (err) {
 		next(err);

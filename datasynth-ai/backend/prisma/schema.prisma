@@ -33,6 +33,9 @@ model Organization {
   updatedAt DateTime @updatedAt
   users     User[]
   projects  Project[]
+  workflows Workflow[]
+  apiKeys   ApiKey[]
+  usage     UsageEvent[]
 }
 
 model User {
@@ -46,6 +49,8 @@ model User {
   organizationId String
   datasets       Dataset[]
   annotations    Annotation[]
+  auditLogs      AuditLog[]
+  usage          UsageEvent[]
 }
 
 model Project {
@@ -56,6 +61,7 @@ model Project {
   organization   Organization @relation(fields: [organizationId], references: [id])
   organizationId String
   datasets       Dataset[]
+  usage          UsageEvent[]
 }
 
 model Dataset {
@@ -96,4 +102,48 @@ model ComplianceReport {
   dataset     Dataset  @relation(fields: [datasetId], references: [id])
   datasetId   String
   certificatePath String?
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+  action    String
+  entity    String
+  entityId  String
+  before    Json?
+  after     Json?
+}
+
+model Workflow {
+  id             String   @id @default(cuid())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  name           String
+  config         Json
+  createdAt      DateTime @default(now())
+}
+
+model ApiKey {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  label          String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  createdAt      DateTime @default(now())
+  revoked        Boolean  @default(false)
+}
+
+model UsageEvent {
+  id             String   @id @default(cuid())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  project        Project? @relation(fields: [projectId], references: [id])
+  projectId      String?
+  user           User?    @relation(fields: [userId], references: [id])
+  userId         String?
+  type           String
+  metadata       Json?
+  createdAt      DateTime @default(now())
 }

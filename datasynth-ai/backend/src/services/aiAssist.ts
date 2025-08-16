@@ -1,3 +1,4 @@
+import { env } from '../config/env';
 export type AiAnnotationSuggestion = {
 	type: 'ENTITY' | 'CLASSIFICATION' | 'SENTIMENT' | 'BBOX' | 'POLYGON';
 	label: string;
@@ -5,7 +6,26 @@ export type AiAnnotationSuggestion = {
 	payload: any;
 };
 
+async function callOpenAiVision(_input: { kind: 'TEXT' | 'IMAGE'; content: string }): Promise<AiAnnotationSuggestion[] | null> {
+	if (!env.ai.openaiApiKey) return null;
+	// Placeholder: integrate OpenAI responses here.
+	return null;
+}
+
+async function callHuggingFace(_input: { kind: 'TEXT' | 'IMAGE'; content: string }): Promise<AiAnnotationSuggestion[] | null> {
+	if (!env.ai.hfApiToken) return null;
+	// Placeholder: integrate HF inference here.
+	return null;
+}
+
 export async function getAiSuggestions(input: { kind: 'TEXT' | 'IMAGE'; content: string }): Promise<AiAnnotationSuggestion[]> {
+	const providers = [callOpenAiVision, callHuggingFace];
+	for (const p of providers) {
+		try {
+			const res = await p(input);
+			if (res && res.length) return res;
+		} catch {}
+	}
 	if (input.kind === 'TEXT') {
 		return [
 			{ type: 'SENTIMENT', label: 'positive', confidence: 0.72, payload: { score: 0.72 } },

@@ -12,5 +12,18 @@ export const env = {
 		bucket: process.env.S3_BUCKET || '',
 		accessKeyId: process.env.S3_ACCESS_KEY_ID || '',
 		secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || ''
+	},
+	ai: {
+		openaiApiKey: process.env.OPENAI_API_KEY || '',
+		hfApiToken: process.env.HUGGINGFACE_API_TOKEN || ''
+	},
+	encryption: {
+		dataKey: process.env.DATA_ENCRYPTION_KEY || ''
+	},
+	stripe: {
+		secretKey: process.env.STRIPE_SECRET_KEY || ''
+	},
+	metrics: {
+		enabled: (process.env.METRICS_ENABLED || 'true') === 'true'
 	}
 };
