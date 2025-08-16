@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import { useRealtime } from './realtime'
 
 type Dataset = { id: string, name: string, type: 'TEXT' | 'IMAGE' }
 
@@ -13,6 +14,10 @@ export default function AnnotatePage() {
   const [text, setText] = useState('John Doe met Jane at john@example.com, call +1 (415) 555-2671.')
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [message, setMessage] = useState<string | null>(null)
+
+  useRealtime(datasetId, (event, payload) => {
+    if (event === 'annotation:created') setMessage(`Realtime: new annotation ${payload.annotation.label}`)
+  })
 
   useEffect(() => {
     const load = async () => {

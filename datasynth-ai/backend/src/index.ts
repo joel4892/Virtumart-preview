@@ -63,9 +63,15 @@ async function start() {
       // eslint-disable-next-line no-console
       console.log(`Backend running on http://localhost:${port}`);
     });
-    io.on('connection', () => {
+    io.on('connection', (socket) => {
       // eslint-disable-next-line no-console
       console.log('Realtime client connected');
+      socket.on('join', (room: { datasetId?: string }) => {
+        if (room?.datasetId) socket.join(`dataset:${room.datasetId}`);
+      });
+      socket.on('leave', (room: { datasetId?: string }) => {
+        if (room?.datasetId) socket.leave(`dataset:${room.datasetId}`);
+      });
     });
   } catch (err) {
     // eslint-disable-next-line no-console

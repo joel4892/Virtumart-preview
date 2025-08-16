@@ -30,6 +30,8 @@ annotationsRouter.post('/', requireRole(['ADMIN', 'ANNOTATOR']), async (req, res
 			}
 		});
 		await prisma.dataset.update({ where: { id: body.datasetId }, data: { status: 'annotation' } });
+		const io = req.app.get('io');
+		io.to(`dataset:${body.datasetId}`).emit('annotation:created', { annotation: ann });
 		res.json({ annotation: ann });
 	} catch (err) {
 		next(err);
